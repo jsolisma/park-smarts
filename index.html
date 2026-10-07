@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Park Smarts: a Walt Disney World facts quiz</title>
+<meta name="description" content="Ten random questions on Walt Disney World facts. Unofficial fan-made quiz that works offline.">
+<meta name="theme-color" content="#FFD60A">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Park Smarts">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{
+  --sun:#FFD60A;      /* page */
+  --ink:#17123B;      /* text, borders */
+  --paper:#FFFFFF;    /* cards */
+  --right:#00695F;    /* correct (always paired with a check icon) */
+  --wrong:#B3124A;    /* incorrect (always paired with a cross icon) */
+  --sky:#CFE9FF;      /* quiet highlight */
+  --edge:3px;
+  --drop:5px 5px 0 var(--ink);
+  --round:"ui-rounded","SF Pro Rounded","Arial Rounded MT Bold","Varela Round","Nunito","Trebuchet MS",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--sun);color:var(--ink);
+  font:1.0625rem/1.45 var(--round);
+  padding:calc(env(safe-area-inset-top,0px) + 16px) calc(env(safe-area-inset-right,0px) + 16px)
+          calc(env(safe-area-inset-bottom,0px) + 24px) calc(env(safe-area-inset-left,0px) + 16px);
+  min-height:100vh;min-height:100dvh;
+}
+main{max-width:34rem;margin:0 auto}
+h1,h2,p{margin:0}
+[hidden]{display:none!important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:focus-visible{outline:4px solid var(--ink);outline-offset:3px}
+.btn:focus-visible,.opt:focus-visible{outline-color:var(--wrong)}
+
+/* shared pieces */
+.card{background:var(--paper);border:var(--edge) solid var(--ink);border-radius:18px;box-shadow:var(--drop);padding:20px}
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:56px;
+  font:700 1.125rem/1.2 var(--round);color:var(--paper);background:var(--ink);
+  border:var(--edge) solid var(--ink);border-radius:14px;padding:12px 18px;cursor:pointer;
+}
+.btn:active{transform:translate(2px,2px)}
+.btn.quiet{background:var(--paper);color:var(--ink)}
+.btn.small{min-height:44px;font-size:1rem;width:auto}
+.ico{width:1.25em;height:1.25em;flex:none}
+.stack>*+*{margin-top:16px}
+
+/* the punch card: ten holes, one per question */
+.punch{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px}
+.punch li{
+  aspect-ratio:1;display:grid;place-items:center;border-radius:50%;
+  border:var(--edge) solid var(--ink);background:var(--paper);
+  font-weight:700;font-size:.8125rem;line-height:1;
+}
+.punch li.now{background:var(--ink);color:var(--paper)}
+.punch li.right{background:var(--right);color:#fff}
+.punch li.wrong{background:var(--wrong);color:#fff;border-style:dashed;border-color:#fff;outline:var(--edge) solid var(--ink);outline-offset:-1px}
+.punch svg{width:62%;height:62%}
+
+/* home */
+.title{font-size:clamp(2.75rem,15vw,4.5rem);line-height:.92;font-weight:800;letter-spacing:-.02em;margin:8px 0 12px}
+.lede{font-size:1.125rem;max-width:26rem}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.stat{padding:14px 16px}
+.stat b{display:block;font-size:1.75rem;line-height:1.1}
+.log{list-style:none;margin:8px 0 0;padding:0}
+.log li{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-top:2px solid var(--ink)}
+.log li:first-child{border-top:0}
+
+/* question */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;font-weight:700}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--sky);border:2px solid var(--ink);border-radius:999px;padding:4px 12px;font-size:.9375rem;font-weight:700}
+.q{font-size:1.375rem;line-height:1.25;font-weight:800;margin:14px 0 16px;overflow-wrap:break-word}
+.opts{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+.opt{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;width:100%;min-height:58px;text-align:left;
+  font:700 1.0625rem/1.25 var(--round);color:var(--ink);background:var(--paper);
+  border:var(--edge) solid var(--ink);border-radius:14px;padding:10px 12px;cursor:pointer;
+}
+.opt .key{flex:none;width:34px;height:34px;display:grid;place-items:center;border-radius:9px;background:var(--ink);color:var(--paper);font-size:1rem}
+.opt .txt{flex:1 1 0;overflow-wrap:break-word}
+.opt .mark{display:none;flex:none;margin-left:auto;align-items:center;gap:6px;font-size:.875rem;white-space:nowrap}
+.opt[disabled]{cursor:default;color:var(--ink)}
+.opt.dim{border-style:dotted;background:transparent}
+.opt.right{background:var(--right);color:#fff}
+.opt.wrong{background:var(--wrong);color:#fff;border-style:dashed}
+.opt.right .mark,.opt.wrong .mark{display:inline-flex}
+.opt.right .key,.opt.wrong .key{background:#fff;color:var(--ink)}
+.verdict{display:flex;align-items:center;gap:10px;font-size:1.25rem;font-weight:800}
+.verdict .badge{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;flex:none}
+.verdict.right .badge{background:var(--right)}
+.verdict.wrong .badge{background:var(--wrong)}
+.verdict .badge svg{width:60%;height:60%}
+.fact{margin-top:8px}
+
+/* result */
+.score{font-size:clamp(4.5rem,26vw,7rem);font-weight:800;line-height:.9;letter-spacing:-.03em}
+.score small{font-size:.4em;letter-spacing:0}
+.rank{font-size:1.5rem;font-weight:800;line-height:1.2;margin-top:10px}
+.review{list-style:none;margin:0;padding:0}
+.review li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;padding:12px 0;border-top:2px solid var(--ink);overflow-wrap:break-word}
+.review li:first-child{border-top:0;padding-top:0}
+.review .badge{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.review .badge svg{width:60%;height:60%}
+.review .right .badge{background:var(--right)}
+.review .wrong .badge{background:var(--wrong)}
+.review b{display:block}
+.review .tag{font-weight:800}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+footer{max-width:34rem;margin:28px auto 0;font-size:.875rem}
+footer a{color:inherit;font-weight:700}
+.toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 20px);transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:999px;font-weight:700;max-width:90vw}
+
+@media (min-width:560px){ .punch{gap:8px} .punch li{font-size:1rem} }
+@media (max-width:319px){ .punch{gap:2px} .punch li{font-size:.6875rem;border-width:2px} }
+@media (prefers-reduced-motion:no-preference){
+  .punch li.pop{animation:pop .35s cubic-bezier(.3,1.6,.5,1)}
+  @keyframes pop{from{transform:scale(.4)}to{transform:scale(1)}}
+}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- HOME -->
+  <section id="home" class="stack" aria-labelledby="home-title">
+    <div>
+      <h1 class="title" id="home-title">Park<br>Smarts</h1>
+      <p class="lede">Ten random questions about Walt Disney World. Get your card punched and find out how much you really know.</p>
+    </div>
+    <button class="btn" id="start" type="button">Start a new quiz</button>
+    <button class="btn quiet" id="resume" type="button" hidden>Pick up where I left off</button>
+    <div class="stats">
+      <div class="card stat"><b id="best">–</b>Best score</div>
+      <div class="card stat"><b id="played">0</b>Quizzes finished</div>
+    </div>
+    <div class="card" id="log-card" hidden>
+      <h2 style="font-size:1.125rem">Recent scores</h2>
+      <ul class="log" id="log"></ul>
+      <button class="btn quiet small" id="reset" type="button" style="margin-top:12px">Erase my scores</button>
+    </div>
+  </section>
+
+  <!-- QUESTION -->
+  <section id="quiz" hidden aria-labelledby="q-text">
+    <div class="bar">
+      <span id="count">Question 1 of 10</span>
+      <button class="btn quiet small" id="quit" type="button">Save and exit</button>
+    </div>
+    <ol class="punch" id="punch" aria-label="Your progress"></ol>
+    <div class="card" style="margin-top:16px">
+      <span class="chip" id="chip"></span>
+      <h2 class="q" id="q-text" tabindex="-1"></h2>
+      <div class="opts" id="opts"></div>
+    </div>
+    <div class="card" id="feedback" hidden style="margin-top:16px" tabindex="-1">
+      <div class="verdict" id="verdict"></div>
+      <p class="fact" id="fact"></p>
+      <button class="btn" id="next" type="button" style="margin-top:16px">Next question</button>
+    </div>
+  </section>
+
+  <!-- RESULT -->
+  <section id="result" class="stack" hidden aria-labelledby="rank">
+    <div class="card">
+      <p class="score" id="score" tabindex="-1"></p>
+      <h2 class="rank" id="rank"></h2>
+      <p id="blurb" style="margin-top:6px"></p>
+      <ol class="punch" id="punch-final" aria-label="Your punched card" style="margin-top:16px"></ol>
+    </div>
+    <div class="row">
+      <button class="btn" id="again" type="button">Play again</button>
+      <button class="btn quiet" id="share" type="button">Share my score</button>
+    </div>
+    <div class="card">
+      <h2 style="font-size:1.125rem;margin-bottom:12px">What you got right and wrong</h2>
+      <ol class="review" id="review"></ol>
+    </div>
+    <button class="btn quiet" id="home-btn" type="button">Back to start</button>
+  </section>
+
+  <div class="sr" aria-live="polite" id="live"></div>
+</main>
+
+<footer>
+  <p>Unofficial fan project, not affiliated with or endorsed by The Walt Disney Company. Facts come from the
+  <a href="https://disneyparksblog.com/wdw/disney-world-facts-to-quiz-your-friends-on/" rel="noopener">Disney Parks Blog</a>
+  (March 2025). Your scores stay on this device.</p>
+</footer>
+
+<script>
+(function(){
+'use strict';
+
+/* ---------- Question bank ----------
+   a[0] is always the correct answer; options are shuffled when shown.
+   g is the fact group: the source article's bullet number (1-35), or 36-37 for its two intro facts.
+   The two Galaxy's Edge bullets (11 and 12) share group 11.
+   38-45 are facts found only in the article's "by the numbers" infographic; an infographic fact
+   that overlaps a bullet or intro fact uses that group instead.
+   A quiz never uses two questions from the same group, because one would give away the other.
+   To add a question, append an object with a unique id and a g (reuse a g if the facts overlap). */
+var CATS={
+  ww:['🗺️','The whole resort'], mk:['🏰','Magic Kingdom'], ep:['🌐','EPCOT'], hs:['🎬','Hollywood Studios'],
+  ak:['🦁','Animal Kingdom'], rs:['🛎️','Resort hotels'], tr:['🚝','Getting around'], cm:['👋','Cast members']
+};
+var BANK=[
+ {id:'in1',c:'ww',g:36,q:'Walt Disney World is the largest and most visited what in the world?',a:['Theme park destination','Hotel chain','Water park','Zoo'],f:'It is both the largest theme park destination in the world and the most visited.'},
+ {id:'in2',c:'ww',g:37,q:'How does Walt Disney World\u2019s size compare with the island of Manhattan?',a:['Nearly twice the size','About the same size','About half the size','Nearly ten times the size'],f:'At nearly 30,000 acres, the resort is almost double the size of Manhattan island.'},
+ {id:'in3',c:'ww',g:37,q:'How many acres is Walt Disney World?',a:['Nearly 30,000','Nearly 3,000','Nearly 10,000','Nearly 100,000'],f:'At nearly 30,000 acres, it is almost double the size of Manhattan island.'},
+ {id:'in4',c:'ww',g:29,q:'How many theme parks does Walt Disney World have?',a:['Four','Five','Six','Eight'],f:'Walt Disney World has four theme parks.'},
+ {id:'in5',c:'ww',g:38,q:'How many water parks does Walt Disney World have?',a:['Two','One','Three','Five'],f:'Walt Disney World has two water parks.'},
+ {id:'in6',c:'ww',g:39,q:'Disney\u2019s "by the numbers" list for Walt Disney World names theme parks, water parks and which two other places?',a:['A sports complex and Disney Springs','A racetrack and Disney Village','A marina and Disney Harbor','An ice rink and Disney Square'],f:'Alongside the theme parks and water parks, Disney lists a sports complex and Disney Springs.'},
+ {id:'in7',c:'ww',g:40,q:'According to Disney, how many attractions does Walt Disney World have?',a:['115+','60+','200+','350+'],f:'Disney counts 115+ attractions at Walt Disney World.'},
+ {id:'in8',c:'ww',g:41,q:'According to Disney, how many entertainment offerings does Walt Disney World have?',a:['40+','10+','90+','150+'],f:'Disney counts 40+ entertainment offerings, including nighttime spectaculars, parades and experiences with live performers.'},
+ {id:'in9',c:'ww',g:41,q:'Disney\u2019s tally of entertainment offerings at Walt Disney World includes nighttime spectaculars, parades and what else?',a:['Experiences that feature live performers','Seasonal movie premieres','Professional sporting events','Hands-on cooking classes'],f:'Disney counts 40+ entertainment offerings, including nighttime spectaculars, parades and experiences with live performers.'},
+ {id:'in10',c:'ww',g:42,q:'According to Disney, how many character experiences does Walt Disney World have?',a:['50+','5+','20+','200+'],f:'Disney counts 50+ character experiences, plus surprise ones that pop up at the parks and resorts.'},
+ {id:'in11',c:'ww',g:43,q:'According to Disney, how many shops and eateries does Walt Disney World have?',a:['675+','75+','275+','1,500+'],f:'Disney counts 675+ shops and eateries at Walt Disney World.'},
+ {id:'in12',c:'ww',g:44,q:'According to Disney, how many quick-service meals are served at Walt Disney World each year?',a:['35.3M+','3.5M+','13.5M+','350M+'],f:'Disney counts 35.3M+ quick-service meals served annually.'},
+ {id:'in13',c:'ww',g:45,q:'According to Disney, how many Mickey pretzels are served at Walt Disney World each year?',a:['3M+','300,000+','30M+','300M+'],f:'Disney counts 3M+ Mickey pretzels served annually.'},
+ {id:'in14',c:'ww',g:11,q:'On top of a new attraction every year since 2017, how many entertainment offerings does Disney say Walt Disney World has debuted?',a:['15+','5+','60+','100+'],f:'Disney lists 15+ entertainment offerings among its debuts, on top of a new attraction every year since 2017.'},
+ {id:'in15',c:'ww',g:11,q:'On top of a new attraction every year since 2017, how many dining locations does Disney say Walt Disney World has debuted?',a:['25+','5+','60+','100+'],f:'Disney lists 25+ dining locations among its debuts, on top of a new attraction every year since 2017.'},
+ {id:'in16',c:'ww',g:11,q:'On top of a new attraction every year since 2017, how many new resort hotels has Walt Disney World debuted?',a:['Three','One','Six','Ten'],f:'Disney lists 3 new resort hotels among its debuts, on top of a new attraction every year since 2017.'},
+
+ {id:'mk1',c:'mk',g:1,q:'How tall is Cinderella Castle?',a:['189 feet','129 feet','229 feet','289 feet'],f:'The castle rises 189 feet over Magic Kingdom, and there really is a Cinderella Suite inside.'},
+ {id:'mk2',c:'mk',g:2,q:'The four steam trains of the Walt Disney World Railroad were originally built in which span of years?',a:['1916 to 1928','1885 to 1899','1936 to 1948','1955 to 1971'],f:'All four trains date from 1916 to 1928, so some are over a century old.'},
+ {id:'mk3',c:'mk',g:3,q:'How many lanterns hang from the Liberty Tree in Liberty Square?',a:['13','7','50','26'],f:'There are 13 lanterns, one for each of the original colonies.'},
+ {id:'mk4',c:'mk',g:3,q:'What does each lantern on the Liberty Tree stand for?',a:['One of the original 13 Colonies','A signer of the Declaration','A U.S. president','A year of the Revolutionary War'],f:'Each of the 13 lanterns represents one of America\u2019s original 13 Colonies.'},
+ {id:'mk5',c:'mk',g:4,q:'Costumes for the Festival of Fantasy parade were made in how many different shops?',a:['10','3','25','40'],f:'Ten shops in eight cities across two countries worked on the parade costumes.'},
+ {id:'mk6',c:'mk',g:5,q:'Which composer wrote the soundtrack for TRON Lightcycle / Run?',a:['Joseph Trapanese','Michael Giacchino','Alan Menken','Hans Zimmer'],f:'Joseph Trapanese, who also worked with Daft Punk on the TRON: Legacy score, wrote new music for the attraction.'},
+ {id:'mk7',c:'mk',g:1,q:'What can be found inside Cinderella Castle?',a:['A Cinderella Suite','A roller coaster','A monorail station','A swimming pool'],f:'There really is a Cinderella Suite inside the castle.'},
+ {id:'mk8',c:'mk',g:1,q:'What colors are the turrets on Cinderella Castle?',a:['Blue and gold','Red and silver','Green and white','Purple and black'],f:'The castle has blue and gold turrets and tall spires.'},
+ {id:'mk9',c:'mk',g:2,q:'How many steam-powered trains does the Walt Disney World Railroad operate?',a:['Four','Two','Six','Nine'],f:'The railroad runs four steam-powered trains.'},
+ {id:'mk10',c:'mk',g:2,q:'How old are some of the Walt Disney World Railroad\u2019s steam trains?',a:['More than 100 years old','About 25 years old','About 50 years old','More than 200 years old'],f:'The trains were built between 1916 and 1928, so some are more than 100 years old.'},
+ {id:'mk11',c:'mk',g:4,q:'The shops that made the Festival of Fantasy parade costumes were in how many cities?',a:['Eight','Two','Fifteen','Thirty'],f:'Ten shops in eight cities across two countries worked on the parade costumes.'},
+ {id:'mk12',c:'mk',g:4,q:'The shops that made the Festival of Fantasy parade costumes were spread across how many countries?',a:['Two','One','Five','Twelve'],f:'Ten shops in eight cities across two countries worked on the parade costumes.'},
+ {id:'mk13',c:'mk',g:5,q:'Before TRON Lightcycle / Run, composer Joseph Trapanese worked with which act on the TRON: Legacy soundtrack?',a:['Daft Punk','The Chemical Brothers','Justice','Kraftwerk'],f:'Daft Punk and Trapanese worked together on TRON: Legacy, a Grammy-nominated soundtrack.'},
+ {id:'mk14',c:'mk',g:5,q:'Besides Magic Kingdom, composer Joseph Trapanese worked on music for the TRON attraction at which resort?',a:['Shanghai Disney Resort','Tokyo Disney Resort','Disneyland Paris','Hong Kong Disneyland'],f:'Shanghai Disney Resort\u2019s TRON attraction also has music he worked on.'},
+ {id:'mk15',c:'mk',g:5,q:'The TRON: Legacy soundtrack that Joseph Trapanese worked on was nominated for which award?',a:['A Grammy','An Academy Award','An Emmy','A Tony'],f:'The TRON: Legacy soundtrack he worked on with Daft Punk was Grammy-nominated.'},
+
+ {id:'ep1',c:'ep',g:6,q:'What does EPCOT stand for?',a:['Experimental Prototype Community of Tomorrow','Every Person Comes Out Thrilled','Exploration Park and Center of Technology','Educational Pavilion Complex of Tomorrow'],f:'Experimental Prototype Community of Tomorrow, a name Walt Disney came up with himself.'},
+ {id:'ep2',c:'ep',g:6,q:'In what year did Walt Disney coin the name EPCOT?',a:['1966','1955','1971','1982'],f:'Walt Disney coined the name himself in 1966.'},
+ {id:'ep3',c:'ep',g:7,q:'How tall is Spaceship Earth?',a:['180 feet','120 feet','240 feet','300 feet'],f:'The geodesic sphere stands 180 feet tall and is actually two spheres with the ride track inside.'},
+ {id:'ep4',c:'ep',g:7,q:'How many aluminum triangle tiles are on the outside of Spaceship Earth?',a:['11,324','1,982','5,280','24,601'],f:'There are 11,324 aluminum triangle tiles on its outside.'},
+ {id:'ep5',c:'ep',g:8,q:'How many individual topiaries appear at the EPCOT International Flower & Garden Festival?',a:['70','15','150','400'],f:'The festival has 70 topiaries and more than a mile and a half of gardens.'},
+ {id:'ep6',c:'ep',g:9,q:'Guardians of the Galaxy: Cosmic Rewind was the first Disney coaster to include what?',a:['A reverse launch','A vertical loop','An underwater section','A free-fall drop'],f:'It was the first Disney coaster to launch riders backwards.'},
+ {id:'ep7',c:'ep',g:9,q:'Cosmic Rewind is an "Omnicoaster". What does that mean?',a:['The vehicles can rotate a full 360 degrees','It runs on two tracks at once','Riders stand instead of sit','It never uses the same route twice'],f:'On an Omnicoaster, the ride vehicles can rotate a full 360 degrees.'},
+ {id:'ep8',c:'ep',g:10,q:'How many country pavilions are in World Showcase?',a:['11','8','14','17'],f:'Eleven country pavilions line World Showcase Lagoon.'},
+ {id:'ep9',c:'ep',g:10,q:'How big is World Showcase Lagoon, the largest body of water in any Disney park?',a:['40 acres','10 acres','85 acres','120 acres'],f:'At 40 acres it is the biggest body of water in any Disney park worldwide.'},
+ {id:'ep10',c:'ep',g:6,q:'Who coined the name EPCOT?',a:['Walt Disney','Roy O. Disney','Michael Eisner','Bob Iger'],f:'Walt Disney coined the name himself in 1966.'},
+ {id:'ep11',c:'ep',g:7,q:'Spaceship Earth is made up of how many spherical structures?',a:['Two','One','Three','Five'],f:'Two spherical structures make up Spaceship Earth, and the ride track sits inside them.'},
+ {id:'ep12',c:'ep',g:7,q:'What kind of structure is Spaceship Earth?',a:['A geodesic sphere','A hot-air balloon','A glass pyramid','A concrete dome'],f:'It is a geodesic sphere, and it stands 180 feet tall.'},
+ {id:'ep13',c:'ep',g:7,q:'Which structure is the icon of EPCOT?',a:['Spaceship Earth','The American Adventure','The Land pavilion','Mission: SPACE'],f:'Spaceship Earth is the icon of EPCOT.'},
+ {id:'ep14',c:'ep',g:8,q:'How much garden does the EPCOT International Flower & Garden Festival feature?',a:['More than a mile and a half','About a quarter mile','About half a mile','More than ten miles'],f:'Its gardens stretch for more than a mile and a half through the park.'},
+ {id:'ep15',c:'ep',g:8,q:'How does the EPCOT International Flower & Garden Festival rank among flower and garden festivals in the United States?',a:['One of the longest','The very first','The only one held indoors','One of the shortest'],f:'It ranks among the longest flower and garden festivals in the United States.'},
+ {id:'ep16',c:'ep',g:8,q:'The topiaries at the EPCOT International Flower & Garden Festival include many of what?',a:['Favorite Disney characters','World landmarks','Sports mascots','Famous scientists'],f:'Its 70 topiaries include many favorite Disney characters.'},
+ {id:'ep17',c:'ep',g:9,q:'Which attraction is the first Disney Omnicoaster?',a:['Guardians of the Galaxy: Cosmic Rewind','Test Track','Soarin\u2019 Around the World','Frozen Ever After'],f:'Cosmic Rewind is the first Disney Omnicoaster: its vehicles can turn a complete 360 degrees.'},
+ {id:'ep18',c:'ep',g:10,q:'World Showcase Lagoon holds which record?',a:['Largest body of water at any Disney park','Smallest body of water at any Disney park','Only saltwater lagoon at any Disney park','First man-made lake at any Disney park'],f:'The 40-acre lagoon is bigger than any other body of water at a Disney park worldwide.'},
+
+ {id:'hs1',c:'hs',g:11,q:'How many acres does Star Wars: Galaxy\u2019s Edge cover at Disney\u2019s Hollywood Studios?',a:['14 acres','5 acres','27 acres','40 acres'],f:'At 14 acres, it is the largest single-themed land expansion ever in a Disney park.'},
+ {id:'hs2',c:'hs',g:11,q:'About how long is the Millennium Falcon parked in Galaxy\u2019s Edge?',a:['More than 100 feet','About 40 feet','About 65 feet','More than 250 feet'],f:'The ship measures more than 100 feet long.'},
+ {id:'hs3',c:'hs',g:13,q:'How tall is The Twilight Zone Tower of Terror?',a:['199 feet','149 feet','249 feet','313 feet'],f:'It is 199 feet tall, about the height of 770 stacked Mickey\u2019s Premium Bars.'},
+ {id:'hs4',c:'hs',g:14,q:'Every clock inside the Tower of Terror is stopped at what time?',a:['8:05','12:00','11:59','3:13'],f:'The clocks all read 8:05, the moment lightning struck the hotel in the story.'},
+ {id:'hs5',c:'hs',g:14,q:'In the Tower of Terror story, on what night did lightning strike the hotel?',a:['Halloween 1939','New Year\u2019s Eve 1929','Friday the 13th, 1955','Christmas Eve 1941'],f:'Lightning struck on Halloween night in 1939, and five people disappeared.'},
+ {id:'hs6',c:'hs',g:15,q:'What "first" does Toy Story Mania! hold?',a:['First attraction designed and built for Walt Disney World and Disneyland Resort at the same time','First Disney attraction to use 3D glasses','First attraction based on a Pixar film','First attraction with no height requirement'],f:'It was developed for both resorts at once. On the west coast it is called Toy Story Midway Mania!'},
+ {id:'hs7',c:'hs',g:13,q:'How many Mickey\u2019s Premium Bars are served at Walt Disney World each year?',a:['More than 3.7 million','About 250,000','About 900,000','More than 20 million'],f:'More than 3.7 million bars a year, enough to reach the top of Tower of Terror 4,892 times.'},
+ {id:'hs8',c:'hs',g:11,q:'Since 2017, how many themed lands has Walt Disney World debuted?',a:['Three','One','Five','Eight'],f:'Three themed lands have debuted since 2017, along with a new attraction every year.'},
+ {id:'hs9',c:'hs',g:11,q:'Which land at Disney\u2019s Hollywood Studios is the largest single-themed expansion ever in a Disney park?',a:['Star Wars: Galaxy\u2019s Edge','Toy Story Land','Sunset Boulevard','Echo Lake'],f:'At 14 acres, Star Wars: Galaxy\u2019s Edge is the largest single-themed expansion ever in a Disney park.'},
+ {id:'hs10',c:'hs',g:11,q:'Since 2017, how often has Walt Disney World debuted a new attraction?',a:['Every year','Every month','Every two years','Every five years'],f:'Since 2017 there has been a new attraction every year, plus three themed lands.'},
+ {id:'hs11',c:'hs',g:11,q:'Where in Star Wars: Galaxy\u2019s Edge is the Millennium Falcon docked?',a:['Black Spire Outpost Spaceport','Mos Eisley Spaceport','Cloud City Landing Platform','Echo Base Hangar'],f:'Its dock is the Black Spire Outpost Spaceport.'},
+ {id:'hs12',c:'hs',g:13,q:'About how many stacked Mickey\u2019s Premium Bars would it take to reach the top of the Tower of Terror?',a:['About 770','About 70','About 7,700','About 77,000'],f:'It would take about 770 stacked bars to reach the top of the 199-foot tower.'},
+ {id:'hs13',c:'hs',g:13,q:'How many times over would a year of Walt Disney World\u2019s Mickey\u2019s Premium Bars reach the top of the Tower of Terror?',a:['4,892 times','48 times','489 times','48,920 times'],f:'More than 3.7 million bars are served a year, enough to reach the top 4,892 times.'},
+ {id:'hs14',c:'hs',g:14,q:'In the Tower of Terror story, how many people disappeared when lightning struck the hotel?',a:['Five','Two','Nine','Thirteen'],f:'The lightning strike caused five people to mysteriously disappear.'},
+ {id:'hs15',c:'hs',g:15,q:'What is Toy Story Mania! called on the west coast?',a:['Toy Story Midway Mania!','Toy Story Carnival Mania!','Toy Story Boardwalk Mania!','Toy Story Arcade Mania!'],f:'Its west coast version is named Toy Story Midway Mania!'},
+
+ {id:'ak1',c:'ak',g:16,q:'Disney\u2019s Animal Kingdom opened on which date?',a:['Earth Day, April 22, 1998','Arbor Day, April 30, 1999','World Wildlife Day, March 3, 1996','July 4, 1997'],f:'The resort\u2019s fourth theme park opened on Earth Day in 1998.'},
+ {id:'ak2',c:'ak',g:17,q:'How tall is the Tree of Life?',a:['145 feet','95 feet','199 feet','250 feet'],f:'The park icon stands 145 feet tall.'},
+ {id:'ak3',c:'ak',g:17,q:'How many animals are sculpted into the Tree of Life?',a:['337','101','199','1,000'],f:'There are 337 animals sculpted into its trunk.'},
+ {id:'ak4',c:'ak',g:18,q:'Which attraction is considered the tallest "mountain" in Florida?',a:['Expedition Everest','Kilimanjaro Safaris','Kali River Rapids','Avatar Flight of Passage'],f:'At almost 200 feet, Expedition Everest is considered the tallest "mountain" in Florida.'},
+ {id:'ak5',c:'ak',g:19,q:'How large is Kilimanjaro Safaris?',a:['110 acres','25 acres','55 acres','300 acres'],f:'At 110 acres, it could hold 83 football fields.'},
+ {id:'ak6',c:'ak',g:20,q:'The popcorn served at Walt Disney World each year weighs as much as how many African elephants?',a:['1,557','12','150','10,000'],f:'A year of popcorn equals the weight of 1,557 African elephants.'},
+ {id:'ak7',c:'ak',g:19,q:'How did Imagineers make the bumpy road on Kilimanjaro Safaris?',a:['Mixed concrete with stones, dirt and twigs','Laid real cobblestones from Kenya','Let trucks wear ruts into clay','Poured asphalt over tree roots'],f:'The rough ride is on purpose: concrete was mixed with stones, dirt and twigs.'},
+ {id:'ak8',c:'ak',g:16,q:'In order of opening, which theme park was Disney\u2019s Animal Kingdom at Walt Disney World Resort?',a:['The fourth','The first','The second','The third'],f:'It was the fourth theme park to open at the resort.'},
+ {id:'ak9',c:'ak',g:17,q:'What is the icon of Disney\u2019s Animal Kingdom?',a:['The Tree of Life','Expedition Everest','Kilimanjaro Safaris','The Boneyard'],f:'The Tree of Life is the park\u2019s icon and stands 145 feet tall.'},
+ {id:'ak10',c:'ak',g:18,q:'How tall is the Expedition Everest mountain?',a:['Almost 200 feet','Almost 100 feet','Almost 300 feet','Almost 500 feet'],f:'At almost 200 feet, the Expedition Everest mountain is considered the tallest "mountain" in Florida.'},
+ {id:'ak11',c:'ak',g:18,q:'Which mountains inspired Expedition Everest?',a:['The Himalayas','The Andes','The Alps','The Rocky Mountains'],f:'The mountain was inspired by the icy Himalayan peaks of Asia.'},
+ {id:'ak12',c:'ak',g:19,q:'Kilimanjaro Safaris is big enough to hold how many football fields?',a:['83','8','38','183'],f:'At 110 acres, Kilimanjaro Safaris could hold 83 football fields.'},
+
+ {id:'rs1',c:'rs',g:21,q:'About how many resort rooms are there at Walt Disney World?',a:['Nearly 29,000','About 6,500','About 14,000','More than 60,000'],f:'There are nearly 29,000 rooms across the resort hotels.'},
+ {id:'rs2',c:'rs',g:21,q:'If you slept in a different Disney resort room every night, how long would it take to try them all?',a:['More than 79 years','About 12 years','About 35 years','More than 150 years'],f:'One room per night would take more than 79 years.'},
+ {id:'rs3',c:'rs',g:22,q:'How much linen does Walt Disney World wash every year?',a:['More than 100 million pounds','About 2 million pounds','About 20 million pounds','More than 1 billion pounds'],f:'Its laundry, one of the largest in North America, handles over 100 million pounds a year.'},
+ {id:'rs4',c:'rs',g:23,q:'How tall is the giant tennis racquet at Disney\u2019s All-Star Sports Resort?',a:['51 feet','18 feet','33 feet','90 feet'],f:'The racquet is 51 feet tall, big enough to cover a whole tennis court.'},
+ {id:'rs5',c:'rs',g:24,q:'How many leis does Disney\u2019s Polynesian Village Resort hand out each day?',a:['More than 1,300','About 150','About 500','More than 5,000'],f:'Guests receive more than 1,300 leis every day.'},
+ {id:'rs6',c:'rs',g:25,q:'How much water is in the Big Blue Pool at Disney\u2019s Art of Animation Resort?',a:['310,000 gallons','50,000 gallons','125,000 gallons','1 million gallons'],f:'It holds 310,000 gallons and is the largest resort pool on property.'},
+ {id:'rs7',c:'rs',g:22,q:'Which of these at Walt Disney World ranks among the largest of its kind in North America?',a:['Its laundry facilities','Its ice rink','Its airport','Its shipyard'],f:'Its laundry facilities are among the largest in North America, cleaning more than 100 million pounds of linen a year.'},
+ {id:'rs8',c:'rs',g:22,q:'Walt Disney World\u2019s laundry facilities also clean laundry for which Florida nonprofit?',a:['Give Kids The World Village','Habitat for Humanity','American Red Cross','The Nature Conservancy'],f:'The laundry also washes for Give Kids The World Village, a Florida nonprofit Disney works with to grant wishes for critically ill children and their families.'},
+ {id:'rs9',c:'rs',g:23,q:'The tennis can sculpture at Disney\u2019s All-Star Sports could hold nearly how many regulation-size tennis balls?',a:['9.5 million','95,000','950,000','95 million'],f:'Nearly 9.5 million regulation tennis balls would fit inside the resort\u2019s tennis can sculpture.'},
+ {id:'rs10',c:'rs',g:23,q:'The giant tennis racquet at Disney\u2019s All-Star Sports is large enough to cover what?',a:['An entire tennis court','A football field','A baseball diamond','An Olympic swimming pool'],f:'The 51-foot racquet could cover a whole tennis court.'},
+ {id:'rs11',c:'rs',g:23,q:'Which Disney resort has a giant tennis racquet and a tennis can sculpture?',a:['Disney\u2019s All-Star Sports','Disney\u2019s All-Star Music','Disney\u2019s All-Star Movies','Disney\u2019s Pop Century Resort'],f:'Disney\u2019s All-Star Sports has both a 51-foot tennis racquet and a massive tennis can sculpture.'},
+ {id:'rs12',c:'rs',g:24,q:'Which Disney resort hands out more than 1,300 leis a day?',a:['Disney\u2019s Polynesian Village Resort','Disney\u2019s Caribbean Beach Resort','Disney\u2019s Coronado Springs Resort','Disney\u2019s Port Orleans Resort'],f:'More than 1,300 leis a day are given to guests at Disney\u2019s Polynesian Village Resort.'},
+ {id:'rs13',c:'rs',g:25,q:'Which resort is home to the largest resort pool at Walt Disney World?',a:['Disney\u2019s Art of Animation Resort','Disney\u2019s Pop Century Resort','Disney\u2019s Contemporary Resort','Disney\u2019s Grand Floridian Resort & Spa'],f:'That resort has the Big Blue Pool, and no resort pool at Walt Disney World is larger.'},
+ {id:'rs14',c:'rs',g:21,q:'According to Disney, how many resort hotels does Walt Disney World have?',a:['25+','10+','45+','80+'],f:'Disney counts 25+ resort hotels, with nearly 29,000 rooms from value to deluxe options.'},
+
+ {id:'tr1',c:'tr',g:26,q:'How many buses are in the Walt Disney World fleet?',a:['More than 400','About 75','About 180','More than 1,200'],f:'More than 400 buses make over 10,000 trips a day.'},
+ {id:'tr2',c:'tr',g:27,q:'About how many guests can one monorail train carry?',a:['About 300','About 80','About 150','About 600'],f:'Each monorail train holds about 300 guests.'},
+ {id:'tr3',c:'tr',g:28,q:'How many polka dots are on each Minnie Van?',a:['95','28','71','101'],f:'Count them next time: there are 95 dots on every Minnie Van.'},
+ {id:'tr4',c:'tr',g:29,q:'How long is a Walt Disney World parking tram?',a:['171 feet','60 feet','110 feet','250 feet'],f:'Each tram stretches 171 feet, and they come in eight colors.'},
+ {id:'tr5',c:'tr',g:30,q:'In what year did the Disney Skyliner gondolas start flying?',a:['2019','2012','2016','2022'],f:'The Skyliner launched in 2019 and has since traveled more than a million miles.'},
+ {id:'tr6',c:'tr',g:26,q:'How many guests ride Walt Disney World buses each year?',a:['65 million','4 million','18 million','200 million'],f:'The buses carry 65 million guests a year and drive 24 million miles.'},
+ {id:'tr7',c:'tr',g:26,q:'How many modes of free transportation does Walt Disney World have?',a:['Four','Two','Six','Nine'],f:'The four free modes are buses, boats, monorails and the Disney Skyliner.'},
+ {id:'tr8',c:'tr',g:26,q:'How many trips do Walt Disney World buses make every day?',a:['More than 10,000','About 500','About 2,000','More than 100,000'],f:'The buses make more than 10,000 trips every day.'},
+ {id:'tr9',c:'tr',g:26,q:'How many miles do Walt Disney World buses drive every year?',a:['24 million','240,000','2.4 million','240 million'],f:'The bus fleet drives 24 million miles every year.'},
+ {id:'tr10',c:'tr',g:29,q:'Walt Disney World parking trams come in how many different colors?',a:['Eight','Three','Five','Twelve'],f:'Across the four theme parks, the trams come in eight colors.'},
+ {id:'tr11',c:'tr',g:30,q:'How far has the Disney Skyliner traveled since its launch?',a:['More than 1 million miles','About 10,000 miles','About 100,000 miles','More than 50 million miles'],f:'Since launching in 2019, the gondolas have covered more than 1 million miles.'},
+ {id:'tr12',c:'tr',g:30,q:'The Disney Skyliner connects how many Resort hotels?',a:['Four','Two','Six','Ten'],f:'The Skyliner gondolas connect two theme parks and four Resort hotels.'},
+ {id:'tr13',c:'tr',g:30,q:'The Disney Skyliner connects how many theme parks?',a:['Two','One','Three','Four'],f:'The Skyliner gondolas connect two theme parks and four Resort hotels.'},
+ {id:'tr14',c:'tr',g:26,q:'Which of these is one of the four free modes of transportation Disney lists at Walt Disney World?',a:['Boats','Minnie Vans','Parking trams','The Walt Disney World Railroad'],f:'The four free modes are buses, boats, monorails and the Disney Skyliner.'},
+
+ {id:'cm1',c:'cm',g:31,q:'Approximately how many cast members work at Walt Disney World?',a:['80,000','12,000','35,000','250,000'],f:'With approximately 80,000 cast members, it is the largest single-site employer in America.'},
+ {id:'cm2',c:'cm',g:33,q:'How many smiles do Disney PhotoPass photographers capture each day?',a:['More than 350,000','About 10,000','About 75,000','More than 2 million'],f:'More than 350,000 smiles are photographed daily.'},
+ {id:'cm3',c:'cm',g:34,q:'How many animals are cared for across Walt Disney World?',a:['More than 5,000','About 400','About 1,500','More than 30,000'],f:'More than 5,000 animals, with an estimated 10,000 pounds of food prepared for them every day.'},
+ {id:'cm4',c:'cm',g:35,q:'Walt Disney World grows plants from every continent except which one?',a:['Antarctica','Australia','Africa','South America'],f:'Nearly 3,500 plant species grow there, from every continent but Antarctica.'},
+ {id:'cm5',c:'cm',g:32,q:'How many volunteer hours did Disney VoluntEARS give in Florida in 2024?',a:['200,000','15,000','60,000','1 million'],f:'Cast members contributed 200,000 volunteer hours in 2024.'},
+ {id:'cm6',c:'cm',g:31,q:'Among single-site employers in America, where does Walt Disney World Resort rank?',a:['Largest','Second largest','Fifth largest','Tenth largest'],f:'With approximately 80,000 cast members, it is the largest single-site employer in America.'},
+ {id:'cm7',c:'cm',g:34,q:'How much food is prepared and served for Walt Disney World\u2019s animals every day?',a:['An estimated 10,000 pounds','An estimated 500 pounds','An estimated 2,000 pounds','An estimated 100,000 pounds'],f:'Feeding them takes an estimated 10,000 pounds of food, prepared and served every day.'},
+ {id:'cm8',c:'cm',g:35,q:'How many plant species do horticulture cast care for across Walt Disney World?',a:['Nearly 3,500','About 350','About 1,000','More than 35,000'],f:'Nearly 3,500 plant species across Walt Disney World are looked after by horticulture cast.'}
+];
+var BY_ID={}; BANK.forEach(function(x){BY_ID[x.id]=x;});
+var TOTAL=10, KEY='parkSmarts.v1';
+
+var RANKS=[
+  {min:9,icon:'👑',name:'Honorary Imagineer',blurb:'You know this place better than most people who work there.'},
+  {min:7,icon:'🎟️',name:'Annual passholder',blurb:'You clearly pay attention between rides.'},
+  {min:4,icon:'🗺️',name:'Weekend park hopper',blurb:'A solid showing. A few more laps and you\u2019ll have the details down.'},
+  {min:0,icon:'🎒',name:'First-time visitor',blurb:'Everyone starts at the front gate. Play again and the facts will stick.'}
+];
+function rankFor(n){for(var i=0;i<RANKS.length;i++)if(n>=RANKS[i].min)return RANKS[i];}
+
+var ICON={
+  right:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12.5l5 5L20 6.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  wrong:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/></svg>'
+};
+
+/* ---------- Storage ---------- */
+function blank(){return {best:null,played:0,history:[],seen:{},current:null};}
+var S=(function(){
+  try{var d=JSON.parse(localStorage.getItem(KEY)); if(d&&typeof d==='object')return Object.assign(blank(),d);}catch(e){}
+  return blank();
+})();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+/* ---------- Helpers ---------- */
+function $(id){return document.getElementById(id);}
+function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+function show(id){['home','quiz','result'].forEach(function(s){$(s).hidden=(s!==id);});window.scrollTo(0,0);}
+function say(t){$('live').textContent='';setTimeout(function(){$('live').textContent=t;},50);}
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e;}
+function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function toast(t){var n=el('div','toast');n.textContent=t;n.setAttribute('role','status');document.body.appendChild(n);setTimeout(function(){n.remove();},2200);}
+
+/* ---------- Home ---------- */
+function renderHome(){
+  $('best').textContent=S.best==null?'\u2013':S.best+'/'+TOTAL;
+  $('played').textContent=S.played;
+  var cur=S.current&&S.current.items&&S.current.items.every(function(it){return BY_ID[it.id];});
+  if(!cur)S.current=null;
+  $('resume').hidden=!cur;
+  var log=$('log');log.innerHTML='';
+  $('log-card').hidden=!S.history.length;
+  S.history.slice(0,5).forEach(function(h){
+    var r=rankFor(h.score),d=new Date(h.at);
+    var li=el('li');
+    li.innerHTML='<span>'+r.icon+' '+esc(r.name)+'<br><small>'+esc(d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}))+'</small></span><b>'+h.score+'/'+TOTAL+'</b>';
+    log.appendChild(li);
+  });
+  show('home');
+}
+
+/* ---------- Quiz ---------- */
+function pickQuestions(){
+  // Least-seen questions first (random among ties), so repeat plays stay fresh,
+  // and at most one question per fact group, so no question gives away another.
+  var pool=shuffle(BANK).sort(function(a,b){return (S.seen[a.id]||0)-(S.seen[b.id]||0);});
+  var used={},picked=[];
+  for(var i=0;i<pool.length&&picked.length<TOTAL;i++){
+    if(!used[pool[i].g]){used[pool[i].g]=true;picked.push(pool[i]);}
+  }
+  return picked;
+}
+function startQuiz(){
+  S.current={items:shuffle(pickQuestions()).map(function(q){return {id:q.id,order:shuffle([0,1,2,3])};}),answers:[],i:0};
+  save();renderQuestion(true);
+}
+
+function drawPunch(target,answers,now,popIndex){
+  target.innerHTML='';
+  for(var i=0;i<TOTAL;i++){
+    var li=el('li'),a=answers[i];
+    if(a===undefined){
+      li.textContent=i+1;
+      if(i===now){li.className='now';li.setAttribute('aria-current','step');}
+      li.setAttribute('aria-label','Question '+(i+1)+(i===now?', current':', not answered yet'));
+    }else{
+      var ok=a===0;
+      li.className=ok?'right':'wrong';
+      li.innerHTML=ok?ICON.right:ICON.wrong;
+      li.setAttribute('aria-label','Question '+(i+1)+(ok?', correct':', incorrect'));
+      if(i===popIndex)li.classList.add('pop');
+    }
+    target.appendChild(li);
+  }
+}
+
+function renderQuestion(moveFocus,justAnswered){
+  var c=S.current,item=c.items[c.i],q=BY_ID[item.id],picked=c.answers[c.i],done=picked!==undefined;
+  show('quiz');
+  $('count').textContent='Question '+(c.i+1)+' of '+TOTAL;
+  drawPunch($('punch'),c.answers,c.i,justAnswered?c.i:-1);
+  $('chip').textContent=CATS[q.c][0]+' '+CATS[q.c][1];
+  $('q-text').textContent=q.q;
+
+  var box=$('opts');box.innerHTML='';
+  item.order.forEach(function(orig,pos){
+    var b=el('button','opt');b.type='button';
+    var letter='ABCD'[pos];
+    b.innerHTML='<span class="key" aria-hidden="true">'+letter+'</span><span class="txt">'+esc(q.a[orig])+'</span><span class="mark"></span>';
+    if(done){
+      b.disabled=true;
+      var mark=b.querySelector('.mark');
+      if(orig===0){b.classList.add('right');mark.innerHTML='<span class="ico">'+ICON.right+'</span>'+(picked===0?'Correct':'Answer');}
+      else if(orig===picked){b.classList.add('wrong');mark.innerHTML='<span class="ico">'+ICON.wrong+'</span>Your pick';}
+      else b.classList.add('dim');
+    }else{
+      b.addEventListener('click',function(){answer(orig);});
+    }
+    box.appendChild(b);
+  });
+
+  var fb=$('feedback');fb.hidden=!done;
+  if(done){
+    var ok=picked===0,v=$('verdict');
+    v.className='verdict '+(ok?'right':'wrong');
+    v.innerHTML='<span class="badge">'+(ok?ICON.right:ICON.wrong)+'</span><span>'+(ok?'Correct':'Not quite')+'</span>';
+    $('fact').textContent=q.f;
+    $('next').textContent=c.i===TOTAL-1?'See my score':'Next question';
+    if(justAnswered){say((ok?'Correct. ':'Not quite. The answer is '+q.a[0]+'. ')+q.f);$('next').focus({preventScroll:true});fb.scrollIntoView({block:'nearest',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});}
+  }else if(moveFocus){$('q-text').focus({preventScroll:true});}
+}
+
+function answer(orig){
+  var c=S.current;if(!c||c.answers[c.i]!==undefined)return;
+  c.answers[c.i]=orig;save();renderQuestion(false,true);
+}
+
+function next(){
+  var c=S.current;if(!c)return;
+  if(c.i<TOTAL-1){c.i++;save();renderQuestion(true);}else finish();
+}
+
+/* ---------- Result ---------- */
+var last=null;
+function finish(){
+  var c=S.current,score=c.answers.filter(function(a){return a===0;}).length;
+  c.items.forEach(function(it){S.seen[it.id]=(S.seen[it.id]||0)+1;});
+  var isBest=S.best==null||score>S.best;
+  if(isBest)S.best=score;
+  S.played++;S.history.unshift({at:Date.now(),score:score});S.history=S.history.slice(0,20);
+  last={items:c.items,answers:c.answers,score:score,isBest:isBest&&S.played>1};
+  S.current=null;save();renderResult();
+}
+
+function renderResult(){
+  var r=rankFor(last.score);
+  $('score').innerHTML=last.score+'<small>/'+TOTAL+'</small><span class="sr"> correct</span>';
+  $('rank').textContent=r.icon+' '+r.name;
+  $('blurb').textContent=(last.isBest?'⭐ New best score. ':'')+r.blurb;
+  drawPunch($('punch-final'),last.answers,-1,-1);
+  var list=$('review');list.innerHTML='';
+  last.items.forEach(function(it,i){
+    var q=BY_ID[it.id],a=last.answers[i],ok=a===0,li=el('li',ok?'right':'wrong');
+    li.innerHTML='<span class="badge">'+(ok?ICON.right:ICON.wrong)+'</span><div><span class="tag">'+(ok?'Correct':'Missed')+'</span><b>'+esc(q.q)+'</b>'+
+      (ok?'':'You picked: '+esc(q.a[a])+'<br>')+'Answer: '+esc(q.a[0])+'</div>';
+    list.appendChild(li);
+  });
+  show('result');$('score').focus({preventScroll:true});
+  say('You scored '+last.score+' out of '+TOTAL+'. '+r.name+'.');
+}
+
+function share(){
+  var r=rankFor(last.score);
+  var marks=last.answers.map(function(a){return a===0?'✅':'❌';}).join('');
+  var text='Park Smarts: '+last.score+'/'+TOTAL+' '+r.icon+' '+r.name+'\n'+marks;
+  var url=location.protocol.indexOf('http')===0?location.href.split('#')[0]:'';
+  if(navigator.share){navigator.share({text:text,url:url||undefined}).catch(function(){});}
+  else if(navigator.clipboard){navigator.clipboard.writeText(text+(url?'\n'+url:'')).then(function(){toast('Score copied');},function(){toast('Copy not allowed in this browser');});}
+  else toast('Sharing is not available in this browser');
+}
+
+/* ---------- Wiring ---------- */
+$('start').addEventListener('click',startQuiz);
+$('again').addEventListener('click',startQuiz);
+$('resume').addEventListener('click',function(){renderQuestion(true);});
+$('next').addEventListener('click',next);
+$('quit').addEventListener('click',renderHome);
+$('home-btn').addEventListener('click',renderHome);
+$('share').addEventListener('click',share);
+$('reset').addEventListener('click',function(){
+  if(confirm('Erase your best score and quiz history from this device?')){S=blank();save();renderHome();toast('Scores erased');}
+});
+document.addEventListener('keydown',function(e){
+  if($('quiz').hidden||e.metaKey||e.ctrlKey||e.altKey)return;
+  var k=e.key.toLowerCase(),pos='abcd'.indexOf(k);if(pos<0)pos='1234'.indexOf(k);
+  if(pos>=0&&k.length===1){var b=$('opts').children[pos];if(b&&!b.disabled)b.click();}
+});
+
+renderHome();
+
+/* Offline support once served over http(s), e.g. GitHub Pages. */
+if('serviceWorker' in navigator&&location.protocol.indexOf('http')===0){
+  window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});
+}
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "Park Smarts",
+  "short_name": "Park Smarts",
+  "description": "A 10-question Walt Disney World facts quiz. Unofficial and fan-made.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFD60A",
+  "theme_color": "#FFD60A",
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}
