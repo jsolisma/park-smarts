@@ -67,9 +67,6 @@ h1,h2,p{margin:0}
 /* home */
 .title{font-size:clamp(2.75rem,15vw,4.5rem);line-height:.92;font-weight:800;letter-spacing:-.02em;margin:8px 0 12px}
 .lede{font-size:1.125rem;max-width:26rem}
-.dare-score{font-size:3rem;font-weight:800;line-height:1;letter-spacing:-.02em;margin-top:12px}
-.dare-score small{font-size:.5em;letter-spacing:0}
-.dare-rank{font-size:1.125rem;font-weight:800;margin-top:4px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .stat{padding:14px 16px}
 .stat b{display:block;font-size:1.75rem;line-height:1.1}
@@ -139,13 +136,6 @@ footer a{color:inherit;font-weight:700}
       <h1 class="title" id="home-title">Park<br>Smarts</h1>
       <p class="lede">Ten random questions about Walt Disney World. Get your card punched and find out how much you really know.</p>
     </div>
-    <div class="card" id="dare" hidden>
-      <span class="chip">🎯 Score to beat</span>
-      <p class="dare-score" id="dare-score"></p>
-      <p class="dare-rank" id="dare-rank"></p>
-      <ol class="punch" id="dare-punch" aria-label="The shared punch card" style="margin-top:12px"></ol>
-      <p style="margin-top:12px">A friend shared this score. Play a quiz and see if you can beat it.</p>
-    </div>
     <button class="btn" id="start" type="button">Start a new quiz</button>
     <button class="btn quiet" id="resume" type="button" hidden>Pick up where I left off</button>
     <div class="stats">
@@ -184,12 +174,11 @@ footer a{color:inherit;font-weight:700}
       <p class="score" id="score" tabindex="-1"></p>
       <h2 class="rank" id="rank"></h2>
       <p id="blurb" style="margin-top:6px"></p>
-      <p id="versus" hidden style="margin-top:8px;font-weight:800"></p>
       <ol class="punch" id="punch-final" aria-label="Your punched card" style="margin-top:16px"></ol>
     </div>
     <div class="row">
       <button class="btn" id="again" type="button">Play again</button>
-      <button class="btn quiet" id="share" type="button">Share my score</button>
+      <button class="btn quiet" id="share" type="button">Share the quiz</button>
     </div>
     <div class="card">
       <h2 style="font-size:1.125rem;margin-bottom:12px">What you got right and wrong</h2>
@@ -377,26 +366,8 @@ function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=c
 function esc(s){return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
 function toast(t){var n=el('div','toast');n.textContent=t;n.setAttribute('role','status');document.body.appendChild(n);setTimeout(function(){n.remove();},2200);}
 
-/* ---------- Shared score ("score to beat") ----------
-   "Share my score" sends a link ending in ?card=1101110111 : one digit per question, 1 = right, 0 = wrong.
-   Nothing else travels in the link, and nothing is stored anywhere. Whoever opens it sees that score
-   on the start screen. Anything that is not exactly ten 0/1 digits is ignored. */
-var DARE=(function(){
-  var m=/[?&#]card=([01]{10})(?=[&#]|$)/.exec(location.search+location.hash);
-  if(!m)return null;
-  var marks=m[1].split('').map(function(c){return c==='1';});
-  return {marks:marks,score:marks.filter(Boolean).length};
-})();
-
 /* ---------- Home ---------- */
 function renderHome(){
-  $('dare').hidden=!DARE;
-  if(DARE){
-    var dr=rankFor(DARE.score);
-    $('dare-score').innerHTML=DARE.score+'<small>/'+TOTAL+'</small>';
-    $('dare-rank').textContent=dr.icon+' '+dr.name;
-    drawPunch($('dare-punch'),DARE.marks.map(function(ok){return ok?0:1;}),-1,-1);
-  }
   $('best').textContent=S.best==null?'\u2013':S.best+'/'+TOTAL;
   $('played').textContent=S.played;
   var cur=S.current&&S.current.items&&S.current.items.every(function(it){return BY_ID[it.id];});
@@ -512,13 +483,6 @@ function renderResult(){
   $('rank').textContent=r.icon+' '+r.name;
   $('blurb').textContent=(last.isBest?'⭐ New best score. ':'')+r.blurb;
   drawPunch($('punch-final'),last.answers,-1,-1);
-  var versus=$('versus');versus.hidden=!DARE;
-  if(DARE){
-    var them=DARE.score+'/'+TOTAL;
-    versus.textContent=last.score>DARE.score?'🏆 You beat the shared score of '+them+'.':
-      last.score===DARE.score?'🤝 You tied the shared score of '+them+'.':
-      '🎯 The shared score of '+them+' still stands.';
-  }
   var list=$('review');list.innerHTML='';
   last.items.forEach(function(it,i){
     var q=BY_ID[it.id],a=last.answers[i],ok=a===0,li=el('li',ok?'right':'wrong');
@@ -527,19 +491,15 @@ function renderResult(){
     list.appendChild(li);
   });
   show('result');$('score').focus({preventScroll:true});
-  say('You scored '+last.score+' out of '+TOTAL+'. '+r.name+'.'+(DARE?' '+versus.textContent:''));
+  say('You scored '+last.score+' out of '+TOTAL+'. '+r.name+'.');
 }
 
 function share(){
-  var r=rankFor(last.score);
-  var marks=last.answers.map(function(a){return a===0?'✅':'❌';}).join('');
-  // The link carries the result (1 = right, 0 = wrong, per question) so whoever opens it sees the score to beat.
-  var link=location.protocol.indexOf('http')===0?location.origin+location.pathname+'?card='+last.answers.map(function(a){return a===0?1:0;}).join(''):'';
-  var text='I scored '+last.score+'/'+TOTAL+' on Park Smarts '+r.icon+' '+r.name+'\n'+marks+'\nCan you beat it?'+(link?'\n'+link:'');
-  // The link goes inside the text rather than in a separate url field: some iPhone share targets
-  // replace or trim a separate url. The trailing space keeps them from cutting the link short.
-  if(navigator.share){navigator.share({title:'Park Smarts',text:text+' '}).catch(function(){});}
-  else if(navigator.clipboard){navigator.clipboard.writeText(text).then(function(){toast('Score copied');},function(){toast('Copy not allowed in this browser');});}
+  // Shares the quiz itself: only the link to this page. No score or other data goes with it.
+  var url=location.protocol.indexOf('http')===0?location.origin+location.pathname:'';
+  if(!url){toast('Sharing works once the quiz is published');return;}
+  if(navigator.share){navigator.share({url:url}).catch(function(){});}
+  else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('Link copied');},function(){toast('Copy not allowed in this browser');});}
   else toast('Sharing is not available in this browser');
 }
 
