@@ -19,6 +19,8 @@ Plain HTML, CSS and JavaScript. No backend, no build step, no dependencies.
 - Shows the right answer and a short fact after each question
 - Ends with a score out of 10, a rank, and a review of every question
 - Remembers your best score, recent scores and any unfinished quiz in `localStorage`
+- **Share my score** sends a message with a link; whoever opens it sees your score as the
+  "score to beat", and is told at the end whether they beat it
 - Works offline after the first visit (a small service worker stores the files on the device)
 - Every status has an icon and a text label, so nothing depends on color alone
 - Keyboard: press `A`-`D` or `1`-`4` to answer
@@ -62,7 +64,11 @@ Open it once while online so the files are cached. After that it runs without a 
 ## Your data
 
 Scores are stored only in your browser under the key `parkSmarts.v1`. Nothing is
-sent anywhere. Use **Erase my scores** on the start screen to clear it.
+sent anywhere. Use **Erase my scores** on the start screen to clear them.
+
+A link made by **Share my score** ends in something like `?card=1101110111`: one
+digit per question, 1 for right and 0 for wrong. That is all it carries, and it
+only goes where you send it.
 
 ## License
 
